@@ -1,0 +1,93 @@
+services :
+  rabbit:
+    image: rabbitmq:3.13-management
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    extends:
+      file: common-config.yml
+      service: network-deploy-service
+  configserver:
+    image: "law/configserver:v1"
+    container_name: configserver
+    ports:
+      - "8071:8071"
+    healthcheck:
+      test: "curl --fail --silent localhost:8071/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
+
+  eurekaserver: 
+    image: "law/eurekaserver:v1"
+    container_name: eurekaserver
+    ports:
+      - "8070:8070"
+    depends_on:
+      configserver:
+        condition: service_healthy
+    environment:
+      SPRING_APPLICATION_NAME: "eurekaserver"
+    extends:
+      file: common-config.yml
+      service: microservice-configserver-config
+
+  UserService :
+    image : "law/user_service:v1"
+    container_name: user
+    ports:
+      - "8000:8000"
+    environment:
+      SPRING_APPLICATION_NAME: "user_service"
+      SPRING_RABBITMQ_HOST: "rabbit"
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
+
+  LegalConsultationService:
+    image : "law/legal_consultation_service:v1"
+    container_name: legal_consultation_service
+    ports:
+      - "8080:8080"
+    environment: 
+      SPRING_APPLICATION_NAME: "legal_consultation_service"
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
+
+  DocumentManagementService:
+    image : "law/document_management_service:v1"
+    container_name: document_management_service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_APPLICATION_NAME: "document_management_service"
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
+  gatewayserver : 
+    image : "law/gatewayserver:v1"
+    container_name: gatewayserver-ms 
+    ports: 
+       - "8072:8072"
+
+    environment :
+      SPRING_APPLICATION_NAME: "gatewayserver"
+    extends:
+      file: common-config.yml
+      service: microservice-eureka-config
+
+networks:
+  lawnet:
+    driver: "bridge"

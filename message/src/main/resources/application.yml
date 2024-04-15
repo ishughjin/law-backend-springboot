@@ -1,0 +1,23 @@
+server :
+  port : 9010
+spring :
+  application :
+    name : "message"
+  cloud :
+    function :
+      definition : email|sms
+    stream :
+      bindings :
+        emailsms-in-0 : # 输入管道， in-0代表这是唯一的通道
+          destination : send-communication # 指定消息发布到目的地的名称  send-communication这通常对应于消息中间件（如 RabbitMQ）中的队列或主题。
+          group: ${spring.application.name}
+        emailsms-out-0 :
+          destination: communication-sent
+
+
+  rabbitmq:
+    host : localhost
+    port : 5672
+    username : guest
+    password: guest
+    connection-timeout: 10s
